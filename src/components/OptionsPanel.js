@@ -68,11 +68,12 @@ function OptionsPanel({ options, onChange }) {
         <OptionGroup>
           <Label>格式</Label>
           <Select value={options.format} onChange={handleFormatChange}>
-            <option value="best">最佳品質</option>
-            <option value="worst">最低品質</option>
             <option value="mp4">MP4</option>
             <option value="webm">WebM</option>
             <option value="mkv">MKV</option>
+            <option value="auto">自動選擇最佳格式</option>
+            <option value="best">最佳預合併格式</option>
+            <option value="worst">最低品質</option>
           </Select>
         </OptionGroup>
 

@@ -162,7 +162,7 @@ ipcMain.handle(
         ];
 
         // 根據選項添加參數
-        if (options.format) {
+        if (options.format && options.format !== "auto") {
           ytdlpArgs.push("-f", options.format);
         }
         if (options.quality) {
@@ -178,8 +178,11 @@ ipcMain.handle(
           );
         }
 
+        // URL 放在最後
+        ytdlpArgs.push(url);
+
         // 發送完整的命令到渲染進程
-        const fullCommand = `yt-dlp ${ytdlpArgs.join(" ")} ${url}`;
+        const fullCommand = `yt-dlp ${ytdlpArgs.join(" ")}`;
         mainWindow.webContents.send(
           "download-progress",
           `\n完整命令: ${fullCommand}\n`

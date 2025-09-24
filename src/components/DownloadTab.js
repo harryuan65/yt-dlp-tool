@@ -160,7 +160,7 @@ const PathButton = styled.button`
 function DownloadTab({ toolsStatus }) {
   const [url, setUrl] = useState("");
   const [options, setOptions] = useState({
-    format: "best",
+    format: "mp4",
     quality: "1080p",
   });
   const [audioOnly, setAudioOnly] = useState(false);
@@ -285,8 +285,10 @@ function DownloadTab({ toolsStatus }) {
       }
 
       // 顯示即將執行的命令
-      const commandMsg = `執行命令: yt-dlp ${url} --output "${downloadPath}/%(title)s.%(ext)s" --no-playlist${
-        downloadOptions.format ? ` -f ${downloadOptions.format}` : ""
+      const commandMsg = `執行命令: yt-dlp --output "${downloadPath}/%(title)s.%(ext)s" --no-playlist${
+        downloadOptions.format && downloadOptions.format !== "auto"
+          ? ` -f ${downloadOptions.format}`
+          : ""
       }${
         downloadOptions.quality
           ? ` --format-sort res:${downloadOptions.quality}`
@@ -295,7 +297,7 @@ function DownloadTab({ toolsStatus }) {
         downloadOptions.audioFormat
           ? ` --extract-audio --audio-format ${downloadOptions.audioFormat}`
           : ""
-      }`;
+      } ${url}`;
       setLogs((prev) => [...prev, commandMsg]);
 
       const result = await window.electronAPI.downloadVideo(

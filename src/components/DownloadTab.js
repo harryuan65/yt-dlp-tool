@@ -3,6 +3,7 @@ import styled from "styled-components";
 import UrlInput from "./UrlInput";
 import DownloadButton from "./DownloadButton";
 import StatusPanel from "./StatusPanel";
+import { buildCommand } from "../utils/command";
 
 const TabContent = styled.div`
   background-color: #252526;
@@ -469,19 +470,11 @@ function DownloadTab({ toolsStatus }) {
       }
 
       // 顯示即將執行的命令
-      const commandMsg = `執行命令: yt-dlp --output "${downloadPath}/%(title)s.%(ext)s" --no-playlist${
-        downloadOptions.format && downloadOptions.format !== "auto"
-          ? ` -f ${downloadOptions.format}`
-          : ""
-      }${
-        downloadOptions.quality
-          ? ` --format-sort res:${downloadOptions.quality}`
-          : ""
-      }${
-        downloadOptions.audioFormat
-          ? ` --extract-audio --audio-format ${downloadOptions.audioFormat}`
-          : ""
-      } ${url}`;
+      const commandMsg = buildCommand({
+        options: downloadOptions,
+        downloadPath,
+        url,
+      });
       setLogs((prev) => [...prev, commandMsg]);
 
       const result = await window.electronAPI.downloadVideo(
@@ -546,7 +539,10 @@ function DownloadTab({ toolsStatus }) {
                   (f) => f.type === "audio only"
                 )}
                 options={options}
-                onChange={setOptions}
+                onChange={(data) => {
+                  console.log(data);
+                  setOptions(data);
+                }}
               />
             )}
           </>
@@ -740,11 +736,8 @@ const FormatSelectionPanel = ({
     setSelectedVideoFormat(formatId);
     onChange({
       ...options,
-      videoFormat: formatId,
       enableVideo: enableVideo,
-      enableAudio: enableAudio,
-      audioFormat: selectedAudioFormat,
-      audioOutputFormat: audioOutputFormat,
+      videoFormat: formatId,
     });
   };
 
@@ -753,11 +746,8 @@ const FormatSelectionPanel = ({
     setSelectedAudioFormat(formatId);
     onChange({
       ...options,
-      videoFormat: selectedVideoFormat,
-      enableVideo: enableVideo,
       enableAudio: enableAudio,
       audioFormat: formatId,
-      audioOutputFormat: audioOutputFormat,
     });
   };
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import UrlInput from "./UrlInput";
-import OptionsPanel from "./OptionsPanel";
 import DownloadButton from "./DownloadButton";
 import StatusPanel from "./StatusPanel";
 
@@ -16,14 +15,16 @@ const TabContent = styled.div`
   gap: 20px;
 `;
 
-const AudioOptions = styled.div`
-  background-color: #1e1e1e;
-  border: 1px solid #3e3e42;
+const OptionSection = styled.div`
+  background-color: ${(props) => (props.$disabled ? "#2d2d2d" : "#1e1e1e")};
+  border: 1px solid ${(props) => (props.$disabled ? "#555" : "#3e3e42")};
   border-radius: 6px;
   padding: 16px;
+  opacity: ${(props) => (props.$disabled ? "0.6" : "1")};
+  transition: opacity 0.2s;
 `;
 
-const AudioTitle = styled.h3`
+const OptionTitle = styled.h3`
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
@@ -157,6 +158,72 @@ const PathButton = styled.button`
   }
 `;
 
+// 自訂選項樣式組件
+const CustomOptionsToggle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const CustomOptionsSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  background-color: ${(props) => (props.$enabled ? "#007acc" : "#555")};
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+`;
+
+const CustomOptionsInput = styled.input`
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const CustomOptionsSlider = styled.span`
+  position: absolute;
+  top: 2px;
+  left: ${(props) => (props.$enabled ? "22px" : "2px")};
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  border-radius: 50%;
+  transition: left 0.2s;
+`;
+
+const CustomOptionsLabel = styled.label`
+  font-size: 14px;
+  font-weight: 500;
+  color: #cccccc;
+  cursor: pointer;
+`;
+
+const DetectButton = styled.button`
+  background: #007acc;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  margin-bottom: 16px;
+
+  &:hover:not(:disabled) {
+    background: #005a9e;
+  }
+
+  &:disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
 function DownloadTab({ toolsStatus }) {
   const [url, setUrl] = useState("");
   const [options, setOptions] = useState({
@@ -167,14 +234,11 @@ function DownloadTab({ toolsStatus }) {
   const [audioFormat, setAudioFormat] = useState("mp3");
   const [downloadPath, setDownloadPath] = useState("");
   const [status, setStatus] = useState("ready");
-  const [progress, setProgress] = useState(
-    "準備就緒，請輸入 URL 並選擇下載位置"
-  );
   const [logs, setLogs] = useState(["準備就緒，請輸入 URL 並選擇下載位置"]);
-  const [availableFormats, setAvailableFormats] = useState(null);
   const [isDetectingFormats, setIsDetectingFormats] = useState(false);
   const [formatOptions, setFormatOptions] = useState([]);
   const [isFormatDetected, setIsFormatDetected] = useState(false);
+  const [enableCustomOptions, setEnableCustomOptions] = useState(true);
 
   // 初始化預設下載位置
   useEffect(() => {
@@ -205,7 +269,6 @@ function DownloadTab({ toolsStatus }) {
     }
 
     const handleProgress = (event, data) => {
-      setProgress((prev) => prev + data);
       setLogs((prev) => [...prev, data.toString()]);
     };
 
@@ -220,7 +283,6 @@ function DownloadTab({ toolsStatus }) {
     if (!window.electronAPI) {
       setStatus("error");
       const errorMsg = "請在 Electron 應用程式中使用此功能";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
@@ -230,13 +292,11 @@ function DownloadTab({ toolsStatus }) {
       if (result.success) {
         setDownloadPath(result.path);
         const successMsg = `下載位置已設定: ${result.path}`;
-        setProgress(successMsg);
         setLogs((prev) => [...prev, successMsg]);
       }
     } catch (error) {
       setStatus("error");
       const errorMsg = `選擇位置失敗: ${error.message}`;
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
     }
   };
@@ -252,7 +312,6 @@ function DownloadTab({ toolsStatus }) {
     try {
       const result = await window.electronAPI.detectStreamFormats(url);
       if (result.success) {
-        setAvailableFormats(result.formats);
         setLogs((prev) => [...prev, "原始格式輸出:", result.formats]);
         const parsedFormats = parseFormats(result.formats);
         setLogs((prev) => [
@@ -363,7 +422,6 @@ function DownloadTab({ toolsStatus }) {
     if (!url.trim()) {
       setStatus("error");
       const errorMsg = "請輸入有效的 URL";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
@@ -371,7 +429,6 @@ function DownloadTab({ toolsStatus }) {
     if (!downloadPath) {
       setStatus("error");
       const errorMsg = "請先選擇下載位置";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
@@ -380,7 +437,6 @@ function DownloadTab({ toolsStatus }) {
     if (!audioOnly && !isFormatDetected) {
       setStatus("error");
       const errorMsg = "請先點擊「偵測串流格式」來獲取可用的格式選項";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
@@ -388,7 +444,6 @@ function DownloadTab({ toolsStatus }) {
     if (!window.electronAPI) {
       setStatus("error");
       const errorMsg = "請在 Electron 應用程式中使用此功能";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
@@ -396,14 +451,12 @@ function DownloadTab({ toolsStatus }) {
     if (!toolsStatus.ytdlp.installed) {
       setStatus("error");
       const errorMsg = "請先安裝 yt-dlp";
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
     }
 
     setStatus("downloading");
     const startMsg = "開始下載...";
-    setProgress(startMsg);
     setLogs((prev) => [...prev, startMsg]);
 
     try {
@@ -438,12 +491,10 @@ function DownloadTab({ toolsStatus }) {
       );
       setStatus("success");
       const successMsg = `下載完成！檔案已儲存至: ${result.downloadPath}`;
-      setProgress(successMsg);
       setLogs((prev) => [...prev, successMsg]);
     } catch (error) {
       setStatus("error");
       const errorMsg = `下載失敗: ${error.message}`;
-      setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
     }
   };
@@ -454,32 +505,62 @@ function DownloadTab({ toolsStatus }) {
         value={url}
         onChange={setUrl}
         placeholder="請輸入 YouTube 或其他影片網站的 URL"
+        required
       />
 
-      <DetectButton
-        onClick={handleDetectFormats}
-        disabled={!url || isDetectingFormats}
-      >
-        {isDetectingFormats ? "偵測中..." : "🔍 偵測串流格式"}
-      </DetectButton>
+      <OptionSection>
+        <OptionTitle>
+          自訂影片選項<span>:請先輸入網址以獲取可用的串流格式</span>
+        </OptionTitle>
+        <CustomOptionsToggle>
+          <CustomOptionsSwitch $enabled={enableCustomOptions}>
+            <CustomOptionsInput
+              type="checkbox"
+              checked={enableCustomOptions}
+              onChange={(e) => setEnableCustomOptions(e.target.checked)}
+            />
+            <CustomOptionsSlider $enabled={enableCustomOptions} />
+          </CustomOptionsSwitch>
+          <CustomOptionsLabel
+            onClick={() => setEnableCustomOptions(!enableCustomOptions)}
+          >
+            自訂影片選項
+          </CustomOptionsLabel>
+        </CustomOptionsToggle>
 
-      {isFormatDetected && (
-        <FormatSelectionPanel
-          videoFormats={formatOptions.filter((f) => f.type === "video only")}
-          audioFormats={formatOptions.filter((f) => f.type === "audio only")}
-          options={options}
-          onChange={setOptions}
-        />
-      )}
+        {enableCustomOptions && (
+          <>
+            <DetectButton
+              onClick={handleDetectFormats}
+              disabled={!url || isDetectingFormats}
+            >
+              {isDetectingFormats ? "偵測中..." : "🔍 偵測串流格式"}
+            </DetectButton>
 
-      <AudioOptions>
-        <AudioTitle>音檔選項</AudioTitle>
+            {isFormatDetected && (
+              <FormatSelectionPanel
+                videoFormats={formatOptions.filter(
+                  (f) => f.type === "video only"
+                )}
+                audioFormats={formatOptions.filter(
+                  (f) => f.type === "audio only"
+                )}
+                options={options}
+                onChange={setOptions}
+              />
+            )}
+          </>
+        )}
+      </OptionSection>
+      <OptionSection $disabled={enableCustomOptions}>
+        <OptionTitle>音檔選項</OptionTitle>
         <AudioToggle>
           <ToggleSwitch>
             <ToggleInput
               type="checkbox"
               checked={audioOnly}
               onChange={(e) => setAudioOnly(e.target.checked)}
+              disabled={enableCustomOptions}
             />
             <ToggleSlider />
           </ToggleSwitch>
@@ -494,7 +575,7 @@ function DownloadTab({ toolsStatus }) {
               value="mp3"
               checked={audioFormat === "mp3"}
               onChange={(e) => setAudioFormat(e.target.value)}
-              disabled={!audioOnly}
+              disabled={!audioOnly || enableCustomOptions}
             />
             MP3
           </FormatOption>
@@ -505,12 +586,12 @@ function DownloadTab({ toolsStatus }) {
               value="wav"
               checked={audioFormat === "wav"}
               onChange={(e) => setAudioFormat(e.target.value)}
-              disabled={!audioOnly}
+              disabled={!audioOnly || enableCustomOptions}
             />
             WAV
           </FormatOption>
         </AudioFormatOptions>
-      </AudioOptions>
+      </OptionSection>
 
       <DownloadPathSection>
         <PathTitle>下載位置</PathTitle>
@@ -525,157 +606,10 @@ function DownloadTab({ toolsStatus }) {
         disabled={status === "downloading"}
       />
 
-      <StatusPanel status={status} progress={logs.join("")} />
+      <StatusPanel status={status} progress={logs.join("\n")} />
     </TabContent>
   );
 }
-
-const DetectButton = styled.button`
-  background: #007acc;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #005a9e;
-  }
-
-  &:disabled {
-    background: #555;
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-`;
-
-const FormatsDisplay = styled.div`
-  background: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 10px;
-`;
-
-const FormatsTitle = styled.h4`
-  color: #fff;
-  margin: 0 0 10px 0;
-  font-size: 14px;
-`;
-
-const FormatsContent = styled.div`
-  background: #1e1e1e;
-  border-radius: 4px;
-  padding: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-
-  pre {
-    color: #d4d4d4;
-    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-    font-size: 12px;
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-`;
-
-// 影片選項面板樣式組件
-const VideoPanel = styled.div`
-  background-color: #252526;
-  border: 1px solid #3e3e42;
-  border-radius: 8px;
-  padding: 16px;
-`;
-
-const VideoTitle = styled.h3`
-  margin: 0 0 16px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-`;
-
-const VideoOptionsGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const VideoOptionGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const VideoLabel = styled.label`
-  font-size: 12px;
-  font-weight: 500;
-  color: #cccccc;
-`;
-
-const VideoSelect = styled.select`
-  background-color: #3c3c3c;
-  border: 1px solid #555555;
-  border-radius: 4px;
-  color: #ffffff;
-  font-size: 14px;
-  padding: 8px 12px;
-  outline: none;
-
-  &:focus {
-    border-color: #007acc;
-  }
-
-  &:disabled {
-    background-color: #2d2d2d;
-    color: #666666;
-    cursor: not-allowed;
-  }
-`;
-
-// 影片選項面板組件
-const VideoOptionsPanel = ({
-  options,
-  onChange,
-  formatOptions,
-  isFormatDetected,
-}) => {
-  const handleFormatChange = (e) => {
-    const selectedFormat = formatOptions.find((f) => f.id === e.target.value);
-    onChange({
-      ...options,
-      format: selectedFormat ? selectedFormat.id : "auto",
-    });
-  };
-
-  return (
-    <VideoPanel>
-      <VideoTitle>下載選項</VideoTitle>
-      <VideoOptionsGrid>
-        <VideoOptionGroup>
-          <VideoLabel>格式</VideoLabel>
-          {!isFormatDetected ? (
-            <VideoSelect disabled>
-              <option>請先偵測串流格式</option>
-            </VideoSelect>
-          ) : (
-            <VideoSelect value={options.format} onChange={handleFormatChange}>
-              <option value="auto">自動選擇最佳格式</option>
-              {formatOptions.map((format) => (
-                <option key={format.id} value={format.id}>
-                  {format.label}
-                </option>
-              ))}
-            </VideoSelect>
-          )}
-        </VideoOptionGroup>
-      </VideoOptionsGrid>
-    </VideoPanel>
-  );
-};
 
 // 格式選擇面板樣式組件
 const FormatSelectionContainer = styled.div`
@@ -827,19 +761,6 @@ const FormatSelectionPanel = ({
     });
   };
 
-  const handleAudioOutputFormatChange = (e) => {
-    const outputFormat = e.target.value;
-    setAudioOutputFormat(outputFormat);
-    onChange({
-      ...options,
-      videoFormat: selectedVideoFormat,
-      enableVideo: enableVideo,
-      enableAudio: enableAudio,
-      audioFormat: selectedAudioFormat,
-      audioOutputFormat: outputFormat,
-    });
-  };
-
   return (
     <FormatSelectionContainer>
       <FormatSelectionTitle>格式選擇</FormatSelectionTitle>
@@ -904,29 +825,6 @@ const FormatSelectionPanel = ({
                   </option>
                 ))}
               </FormatSelect>
-
-              <AudioFormatOptions>
-                <AudioFormatOption>
-                  <input
-                    type="radio"
-                    name="audioOutputFormat"
-                    value="mp3"
-                    checked={audioOutputFormat === "mp3"}
-                    onChange={handleAudioOutputFormatChange}
-                  />
-                  MP3
-                </AudioFormatOption>
-                <AudioFormatOption>
-                  <input
-                    type="radio"
-                    name="audioOutputFormat"
-                    value="wav"
-                    checked={audioOutputFormat === "wav"}
-                    onChange={handleAudioOutputFormatChange}
-                  />
-                  WAV
-                </AudioFormatOption>
-              </AudioFormatOptions>
             </>
           )}
         </FormatColumn>

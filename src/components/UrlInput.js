@@ -33,7 +33,7 @@ const Input = styled.input`
   }
 `;
 
-function UrlInput({ value, onChange, placeholder }) {
+function UrlInput({ value, onChange, placeholder, required }) {
   return (
     <InputContainer>
       <Label>影片 URL</Label>
@@ -42,6 +42,7 @@ function UrlInput({ value, onChange, placeholder }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        required={required}
       />
     </InputContainer>
   );

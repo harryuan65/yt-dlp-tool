@@ -171,6 +171,10 @@ function DownloadTab({ toolsStatus }) {
     "準備就緒，請輸入 URL 並選擇下載位置"
   );
   const [logs, setLogs] = useState(["準備就緒，請輸入 URL 並選擇下載位置"]);
+  const [availableFormats, setAvailableFormats] = useState(null);
+  const [isDetectingFormats, setIsDetectingFormats] = useState(false);
+  const [formatOptions, setFormatOptions] = useState([]);
+  const [isFormatDetected, setIsFormatDetected] = useState(false);
 
   // 初始化預設下載位置
   useEffect(() => {
@@ -237,6 +241,124 @@ function DownloadTab({ toolsStatus }) {
     }
   };
 
+  const handleDetectFormats = async () => {
+    if (!url || !window.electronAPI) {
+      return;
+    }
+
+    setIsDetectingFormats(true);
+    setLogs((prev) => [...prev, "正在偵測可用的串流格式..."]);
+
+    try {
+      const result = await window.electronAPI.detectStreamFormats(url);
+      if (result.success) {
+        setAvailableFormats(result.formats);
+        setLogs((prev) => [...prev, "原始格式輸出:", result.formats]);
+        const parsedFormats = parseFormats(result.formats);
+        setLogs((prev) => [
+          ...prev,
+          `解析到 ${parsedFormats.length} 個格式選項`,
+        ]);
+        setFormatOptions(parsedFormats);
+        setIsFormatDetected(true);
+        setLogs((prev) => [...prev, "串流格式偵測完成！已生成格式選項。"]);
+      } else {
+        setLogs((prev) => [...prev, `偵測失敗: ${result.error}`]);
+      }
+    } catch (error) {
+      setLogs((prev) => [...prev, `偵測失敗: ${error.message}`]);
+    } finally {
+      setIsDetectingFormats(false);
+    }
+  };
+
+  // 解析 yt-dlp 格式輸出
+  const parseFormats = (formatOutput) => {
+    const lines = formatOutput.split("\n");
+    const formats = [];
+
+    for (const line of lines) {
+      // 跳過標題行和分隔線
+      if (
+        line.includes("ID  EXT") ||
+        line.includes("---") ||
+        line.trim() === ""
+      ) {
+        continue;
+      }
+
+      // 尋找包含 "video only" 或 "audio only" 的行
+      if (line.includes("video only") || line.includes("audio only")) {
+        // 使用更簡單的解析方式
+        const parts = line.trim().split(/\s+/);
+
+        if (parts.length >= 3) {
+          const id = parts[0];
+          const ext = parts[1];
+          const resolution = parts[2];
+          const type = line.includes("video only")
+            ? "video only"
+            : "audio only";
+
+          // 對於影片格式，檢查解析度
+          if (
+            type === "video only" &&
+            resolution.includes("x") &&
+            !isNaN(parseInt(resolution.split("x")[0]))
+          ) {
+            const resHeight = resolution.split("x")[1];
+            const quality = resHeight ? `${resHeight}p` : resolution;
+
+            // 提取檔案大小
+            const sizeMatch = line.match(/(\d+\.?\d*[kMG]?B)/);
+            const filesize = sizeMatch ? sizeMatch[1] : "未知大小";
+
+            // 提取畫質描述 (例如: 144p, 720p60)
+            const qualityMatch = line.match(/(\d+p\d*)/);
+            const qualityDesc = qualityMatch ? qualityMatch[1] : quality;
+
+            formats.push({
+              id,
+              ext: ext.toUpperCase(),
+              resolution,
+              quality: qualityDesc,
+              filesize,
+              type,
+              label: `${ext.toUpperCase()}(${id}) ${resolution} ${qualityDesc} video only`,
+            });
+          }
+          // 對於音檔格式
+          else if (type === "audio only") {
+            // 提取檔案大小
+            const sizeMatch = line.match(/(\d+\.?\d*[kMG]?B)/);
+            const filesize = sizeMatch ? sizeMatch[1] : "未知大小";
+
+            // 提取音質描述
+            const qualityMatch = line.match(/(low|medium|high)/);
+            const qualityDesc = qualityMatch ? qualityMatch[1] : "未知音質";
+
+            formats.push({
+              id,
+              ext: ext.toUpperCase(),
+              resolution: "audio",
+              quality: qualityDesc,
+              filesize,
+              type,
+              label: `${ext.toUpperCase()}(${id}) ${qualityDesc} audio only`,
+            });
+          }
+        }
+      }
+    }
+
+    // 按解析度高度排序（從高到低）
+    return formats.sort((a, b) => {
+      const aHeight = parseInt(a.resolution.split("x")[1]) || 0;
+      const bHeight = parseInt(b.resolution.split("x")[1]) || 0;
+      return bHeight - aHeight;
+    });
+  };
+
   const handleDownload = async () => {
     if (!url.trim()) {
       setStatus("error");
@@ -249,6 +371,15 @@ function DownloadTab({ toolsStatus }) {
     if (!downloadPath) {
       setStatus("error");
       const errorMsg = "請先選擇下載位置";
+      setProgress(errorMsg);
+      setLogs((prev) => [...prev, errorMsg]);
+      return;
+    }
+
+    // 如果是影片下載且未偵測格式，則要求先偵測
+    if (!audioOnly && !isFormatDetected) {
+      setStatus("error");
+      const errorMsg = "請先點擊「偵測串流格式」來獲取可用的格式選項";
       setProgress(errorMsg);
       setLogs((prev) => [...prev, errorMsg]);
       return;
@@ -325,7 +456,21 @@ function DownloadTab({ toolsStatus }) {
         placeholder="請輸入 YouTube 或其他影片網站的 URL"
       />
 
-      <OptionsPanel options={options} onChange={setOptions} />
+      <DetectButton
+        onClick={handleDetectFormats}
+        disabled={!url || isDetectingFormats}
+      >
+        {isDetectingFormats ? "偵測中..." : "🔍 偵測串流格式"}
+      </DetectButton>
+
+      {isFormatDetected && (
+        <FormatSelectionPanel
+          videoFormats={formatOptions.filter((f) => f.type === "video only")}
+          audioFormats={formatOptions.filter((f) => f.type === "audio only")}
+          options={options}
+          onChange={setOptions}
+        />
+      )}
 
       <AudioOptions>
         <AudioTitle>音檔選項</AudioTitle>
@@ -384,5 +529,410 @@ function DownloadTab({ toolsStatus }) {
     </TabContent>
   );
 }
+
+const DetectButton = styled.button`
+  background: #007acc;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #005a9e;
+  }
+
+  &:disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+const FormatsDisplay = styled.div`
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
+`;
+
+const FormatsTitle = styled.h4`
+  color: #fff;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+`;
+
+const FormatsContent = styled.div`
+  background: #1e1e1e;
+  border-radius: 4px;
+  padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+
+  pre {
+    color: #d4d4d4;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 12px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+`;
+
+// 影片選項面板樣式組件
+const VideoPanel = styled.div`
+  background-color: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 16px;
+`;
+
+const VideoTitle = styled.h3`
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const VideoOptionsGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const VideoOptionGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const VideoLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+`;
+
+const VideoSelect = styled.select`
+  background-color: #3c3c3c;
+  border: 1px solid #555555;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 8px 12px;
+  outline: none;
+
+  &:focus {
+    border-color: #007acc;
+  }
+
+  &:disabled {
+    background-color: #2d2d2d;
+    color: #666666;
+    cursor: not-allowed;
+  }
+`;
+
+// 影片選項面板組件
+const VideoOptionsPanel = ({
+  options,
+  onChange,
+  formatOptions,
+  isFormatDetected,
+}) => {
+  const handleFormatChange = (e) => {
+    const selectedFormat = formatOptions.find((f) => f.id === e.target.value);
+    onChange({
+      ...options,
+      format: selectedFormat ? selectedFormat.id : "auto",
+    });
+  };
+
+  return (
+    <VideoPanel>
+      <VideoTitle>下載選項</VideoTitle>
+      <VideoOptionsGrid>
+        <VideoOptionGroup>
+          <VideoLabel>格式</VideoLabel>
+          {!isFormatDetected ? (
+            <VideoSelect disabled>
+              <option>請先偵測串流格式</option>
+            </VideoSelect>
+          ) : (
+            <VideoSelect value={options.format} onChange={handleFormatChange}>
+              <option value="auto">自動選擇最佳格式</option>
+              {formatOptions.map((format) => (
+                <option key={format.id} value={format.id}>
+                  {format.label}
+                </option>
+              ))}
+            </VideoSelect>
+          )}
+        </VideoOptionGroup>
+      </VideoOptionsGrid>
+    </VideoPanel>
+  );
+};
+
+// 格式選擇面板樣式組件
+const FormatSelectionContainer = styled.div`
+  background-color: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 16px;
+`;
+
+const FormatSelectionTitle = styled.h3`
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const FormatColumns = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+`;
+
+const FormatColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const FormatToggle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const FormatToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  background-color: ${(props) => (props.$enabled ? "#007acc" : "#555")};
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+`;
+
+const FormatToggleInput = styled.input`
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const FormatToggleSlider = styled.span`
+  position: absolute;
+  top: 2px;
+  left: ${(props) => (props.$enabled ? "22px" : "2px")};
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  border-radius: 50%;
+  transition: left 0.2s;
+`;
+
+const FormatLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  cursor: pointer;
+`;
+
+const FormatSelect = styled.select`
+  background-color: #3c3c3c;
+  border: 1px solid #555555;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 8px 12px;
+  outline: none;
+
+  &:focus {
+    border-color: #007acc;
+  }
+
+  &:disabled {
+    background-color: #2d2d2d;
+    color: #666666;
+    cursor: not-allowed;
+  }
+`;
+
+const AudioFormatOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #cccccc;
+  cursor: pointer;
+`;
+
+// 格式選擇面板組件
+const FormatSelectionPanel = ({
+  videoFormats,
+  audioFormats,
+  options,
+  onChange,
+}) => {
+  const [enableVideo, setEnableVideo] = useState(false);
+  const [enableAudio, setEnableAudio] = useState(false);
+  const [selectedVideoFormat, setSelectedVideoFormat] = useState("");
+  const [selectedAudioFormat, setSelectedAudioFormat] = useState("");
+  const [audioOutputFormat, setAudioOutputFormat] = useState("mp3");
+
+  const handleVideoToggle = (enabled) => {
+    setEnableVideo(enabled);
+    if (!enabled) {
+      setSelectedVideoFormat("");
+    }
+  };
+
+  const handleAudioToggle = (enabled) => {
+    setEnableAudio(enabled);
+    if (!enabled) {
+      setSelectedAudioFormat("");
+    }
+  };
+
+  const handleVideoFormatChange = (e) => {
+    const formatId = e.target.value;
+    setSelectedVideoFormat(formatId);
+    onChange({
+      ...options,
+      videoFormat: formatId,
+      enableVideo: enableVideo,
+      enableAudio: enableAudio,
+      audioFormat: selectedAudioFormat,
+      audioOutputFormat: audioOutputFormat,
+    });
+  };
+
+  const handleAudioFormatChange = (e) => {
+    const formatId = e.target.value;
+    setSelectedAudioFormat(formatId);
+    onChange({
+      ...options,
+      videoFormat: selectedVideoFormat,
+      enableVideo: enableVideo,
+      enableAudio: enableAudio,
+      audioFormat: formatId,
+      audioOutputFormat: audioOutputFormat,
+    });
+  };
+
+  const handleAudioOutputFormatChange = (e) => {
+    const outputFormat = e.target.value;
+    setAudioOutputFormat(outputFormat);
+    onChange({
+      ...options,
+      videoFormat: selectedVideoFormat,
+      enableVideo: enableVideo,
+      enableAudio: enableAudio,
+      audioFormat: selectedAudioFormat,
+      audioOutputFormat: outputFormat,
+    });
+  };
+
+  return (
+    <FormatSelectionContainer>
+      <FormatSelectionTitle>格式選擇</FormatSelectionTitle>
+      <FormatColumns>
+        {/* 左側：影片格式 */}
+        <FormatColumn>
+          <FormatToggle>
+            <FormatToggleSwitch $enabled={enableVideo}>
+              <FormatToggleInput
+                type="checkbox"
+                checked={enableVideo}
+                onChange={(e) => handleVideoToggle(e.target.checked)}
+              />
+              <FormatToggleSlider $enabled={enableVideo} />
+            </FormatToggleSwitch>
+            <FormatLabel onClick={() => handleVideoToggle(!enableVideo)}>
+              影片格式
+            </FormatLabel>
+          </FormatToggle>
+
+          {enableVideo && (
+            <FormatSelect
+              value={selectedVideoFormat}
+              onChange={handleVideoFormatChange}
+            >
+              <option value="">選擇影片格式</option>
+              {videoFormats.map((format) => (
+                <option key={format.id} value={format.id}>
+                  {format.label}
+                </option>
+              ))}
+            </FormatSelect>
+          )}
+        </FormatColumn>
+
+        {/* 右側：音檔格式 */}
+        <FormatColumn>
+          <FormatToggle>
+            <FormatToggleSwitch $enabled={enableAudio}>
+              <FormatToggleInput
+                type="checkbox"
+                checked={enableAudio}
+                onChange={(e) => handleAudioToggle(e.target.checked)}
+              />
+              <FormatToggleSlider $enabled={enableAudio} />
+            </FormatToggleSwitch>
+            <FormatLabel onClick={() => handleAudioToggle(!enableAudio)}>
+              音檔格式
+            </FormatLabel>
+          </FormatToggle>
+
+          {enableAudio && (
+            <>
+              <FormatSelect
+                value={selectedAudioFormat}
+                onChange={handleAudioFormatChange}
+              >
+                <option value="">選擇音檔格式</option>
+                {audioFormats.map((format) => (
+                  <option key={format.id} value={format.id}>
+                    {format.label}
+                  </option>
+                ))}
+              </FormatSelect>
+
+              <AudioFormatOptions>
+                <AudioFormatOption>
+                  <input
+                    type="radio"
+                    name="audioOutputFormat"
+                    value="mp3"
+                    checked={audioOutputFormat === "mp3"}
+                    onChange={handleAudioOutputFormatChange}
+                  />
+                  MP3
+                </AudioFormatOption>
+                <AudioFormatOption>
+                  <input
+                    type="radio"
+                    name="audioOutputFormat"
+                    value="wav"
+                    checked={audioOutputFormat === "wav"}
+                    onChange={handleAudioOutputFormatChange}
+                  />
+                  WAV
+                </AudioFormatOption>
+              </AudioFormatOptions>
+            </>
+          )}
+        </FormatColumn>
+      </FormatColumns>
+    </FormatSelectionContainer>
+  );
+};
 
 export default DownloadTab;

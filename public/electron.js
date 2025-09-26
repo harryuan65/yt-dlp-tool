@@ -130,6 +130,35 @@ ipcMain.handle("get-default-download-path", () => {
   return { success: true, path: getDefaultDownloadPath() };
 });
 
+// 偵測串流格式
+ipcMain.handle("detect-stream-formats", async (event, url) => {
+  return new Promise((resolve) => {
+    const ytdlp = spawn("yt-dlp", ["--list-formats", url]);
+    let output = "";
+    let errorOutput = "";
+
+    ytdlp.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    ytdlp.stderr.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+    ytdlp.on("close", (code) => {
+      if (code === 0) {
+        resolve({ success: true, formats: output });
+      } else {
+        resolve({ success: false, error: errorOutput });
+      }
+    });
+
+    ytdlp.on("error", (error) => {
+      resolve({ success: false, error: error.message });
+    });
+  });
+});
+
 ipcMain.handle(
   "download-video",
   async (event, { url, options, downloadPath }) => {
@@ -161,21 +190,21 @@ ipcMain.handle(
           "--no-playlist",
         ];
 
-        // 根據選項添加參數
-        if (options.format && options.format !== "auto") {
-          ytdlpArgs.push("-f", options.format);
-        }
-        if (options.quality) {
-          ytdlpArgs.push("--format-sort", `res:${options.quality}`);
-        }
-
-        // 如果只要音檔
-        if (options.audioFormat) {
-          ytdlpArgs.push(
-            "--extract-audio",
-            "--audio-format",
-            options.audioFormat
-          );
+        // 根據新的格式選擇邏輯添加參數
+        if (options.enableVideo && options.enableAudio) {
+          // 影片+音檔組合
+          ytdlpArgs.push("-f", `${options.videoFormat}+${options.audioFormat}`);
+        } else if (options.enableVideo) {
+          // 只要影片
+          ytdlpArgs.push("-f", options.videoFormat);
+        } else if (options.enableAudio) {
+          // 只要音檔
+          ytdlpArgs.push("-f", options.audioFormat);
+          ytdlpArgs.push("--extract-audio");
+          ytdlpArgs.push("--audio-format", options.audioOutputFormat);
+        } else {
+          // 預設行為
+          ytdlpArgs.push("-f", "best");
         }
 
         // URL 放在最後

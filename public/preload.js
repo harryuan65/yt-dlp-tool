@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 獲取預設下載位置
   getDefaultDownloadPath: () => ipcRenderer.invoke("get-default-download-path"),
 
+  // 偵測串流格式
+  detectStreamFormats: (url) =>
+    ipcRenderer.invoke("detect-stream-formats", url),
+
   // 選擇下載位置
   selectDownloadPath: () => ipcRenderer.invoke("select-download-path"),
 

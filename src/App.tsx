@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Header from './components/Header';
 import TabNavigation from './components/TabNavigation';
-import DownloadTab from './components/DownloadTab';
+import DownloadTab from './components/DownloadTab/DownloadTab';
 import ConvertTab from './components/ConvertTab';
 
 const AppContainer = styled.div`

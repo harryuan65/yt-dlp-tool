@@ -5,7 +5,7 @@ const Panel = styled.div`
   border: 1px solid #3e3e42;
   border-radius: 8px;
   padding: 16px;
-  min-height: 500px;
+  height: 500px;
   overflow: scroll;
   margin-bottom: 12px;
 `;

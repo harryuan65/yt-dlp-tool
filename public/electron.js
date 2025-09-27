@@ -294,3 +294,14 @@ ipcMain.handle("maximize-window", () => {
     mainWindow.maximize();
   }
 });
+
+// 開啟資料夾處理器
+ipcMain.handle("open-folder", async (event, folderPath) => {
+  try {
+    await shell.openPath(folderPath);
+    return { success: true };
+  } catch (error) {
+    console.error("開啟資料夾失敗:", error);
+    return { success: false, error: error.message };
+  }
+});

@@ -309,6 +309,23 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     }
   };
 
+  const handleOpenFolder = async () => {
+    if (!downloadPath) {
+      setStatus("error");
+      const errorMsg = "請先選擇下載位置";
+      setLogs((prev) => [...prev, errorMsg]);
+      return;
+    }
+
+    try {
+      await window.electronAPI.openFolder(downloadPath);
+    } catch (error: any) {
+      setStatus("error");
+      const errorMsg = `開啟資料夾失敗: ${error.message}`;
+      setLogs((prev) => [...prev, errorMsg]);
+    }
+  };
+
   const parseFormats = (formatOutput: string): FormatOption[] => {
     const lines = formatOutput.split("\n");
     const formats: FormatOption[] = [];
@@ -645,9 +662,26 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
         <SectionTitle>下載位置</SectionTitle>
         <PathRow>
           <PathDisplay>{downloadPath}</PathDisplay>
-          <PathButton onClick={handleSelectPath}>
-            選擇下載位置
-          </PathButton>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <PathButton onClick={handleSelectPath}>
+              選擇下載位置
+            </PathButton>
+            {downloadPath && (
+              <button
+                onClick={handleOpenFolder}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}>
+                開啟資料夾
+              </button>
+            )}
+          </div>
         </PathRow>
       </OptionSection>
 

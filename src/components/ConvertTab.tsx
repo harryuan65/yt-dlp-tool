@@ -170,6 +170,23 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleOpenOutputFolder = async () => {
+    if (!outputDir) {
+      setStatus("error");
+      const errorMsg = "請先選擇輸出路徑";
+      setLogs((prev) => [...prev, errorMsg]);
+      return;
+    }
+
+    try {
+      await window.electronAPI.openFolder(outputDir);
+    } catch (error: any) {
+      setStatus("error");
+      const errorMsg = `開啟資料夾失敗: ${error.message}`;
+      setLogs((prev) => [...prev, errorMsg]);
+    }
+  };
+
   const handleConvert = async () => {
     if (files.length === 0) {
       setStatus("error");
@@ -314,6 +331,22 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
           >
             選擇路徑
           </button>
+          {outputDir && (
+            <button
+              onClick={handleOpenOutputFolder}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              開啟資料夾
+            </button>
+          )}
         </div>
       </div>
 

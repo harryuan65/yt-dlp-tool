@@ -94,11 +94,10 @@ function DownloadButton({ onClick, status, disabled }: DownloadButtonProps) {
   const getButtonText = () => {
     switch (status) {
       case 'ready':
+      case 'disabled':
         return '開始下載';
       case 'downloading':
         return '下載中...';
-      case 'disabled':
-        return '請輸入網址';
       default:
         return '開始下載';
     }

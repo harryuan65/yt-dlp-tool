@@ -228,6 +228,23 @@ const DetectHint = styled.span`
   color: #cccccc;
 `;
 
+const ResetButton = styled.button`
+  padding: 12px 24px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+const DownloadSection = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`
+
 interface ToolsStatus {
   ytdlp: boolean;
   ffmpeg: boolean;
@@ -686,28 +703,22 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
       </OptionSection>
 
       <div style={{ display: 'flex', gap: '12px' }}>
-        <DownloadButton
-          onClick={handleDownload}
-          status={
-            getDownloadStatus()
-          }
-        />
-        <button
-          onClick={handleReset}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
-        >
-          重置
-        </button>
+
       </div>
+
+      <DownloadSection>
+          <ResetButton
+            onClick={handleReset}
+          >
+            重置
+          </ResetButton>
+        <DownloadButton
+            onClick={handleDownload}
+            status={
+              getDownloadStatus()
+            }
+          />
+      </DownloadSection>
 
       <StatusPanel status={status} progress={logs.join("\n")} />
     </TabContent>

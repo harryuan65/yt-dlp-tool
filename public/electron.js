@@ -194,7 +194,6 @@ ipcMain.handle(
 
         ytdlp.stdout.on("data", (data) => {
           output += data.toString();
-          // 發送進度更新到渲染進程
           mainWindow.webContents.send("download-progress", data.toString());
         });
 

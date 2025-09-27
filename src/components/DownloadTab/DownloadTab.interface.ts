@@ -3,6 +3,7 @@ export interface DownloadOptions {
   enableAudio: boolean;
   videoFormat: string;
   audioFormat: string;
+  audioOnly: boolean;
   audioOutputFormat: string;
 }
 

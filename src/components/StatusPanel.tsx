@@ -1,4 +1,3 @@
-import React from "react";
 import styled from "styled-components";
 
 const Panel = styled.div`
@@ -6,7 +5,9 @@ const Panel = styled.div`
   border: 1px solid #3e3e42;
   border-radius: 8px;
   padding: 16px;
-  min-height: 100px;
+  min-height: 500px;
+  overflow: scroll;
+  margin-bottom: 12px;
 `;
 
 const Title = styled.h3`
@@ -19,12 +20,8 @@ const Title = styled.h3`
 const StatusContent = styled.div<{ status?: string }>`
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 12px;
-  line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-all;
-  min-height: 300px;
-  max-height: 500px;
-  overflow-y: auto;
 
   ${(props) => {
     switch (props.status) {
@@ -38,13 +35,6 @@ const StatusContent = styled.div<{ status?: string }>`
         return "color: #888;";
     }
   }}
-`;
-
-const EmptyState = styled.div`
-  color: #666;
-  font-style: italic;
-  text-align: center;
-  padding: 20px;
 `;
 
 interface StatusPanelProps {

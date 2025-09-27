@@ -33,6 +33,12 @@ const DownloadPathSection = styled.div`
   gap: 8px;
 `;
 
+const PathRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
 const PathButton = styled.button`
   padding: 12px 16px;
   background-color: #007acc;
@@ -43,6 +49,8 @@ const PathButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  flex-shrink: 0; /* 防止按鈕被壓縮 */
+  white-space: nowrap; /* 防止文字換行 */
 
   &:hover {
     background-color: #005a9e;
@@ -54,17 +62,23 @@ const PathButton = styled.button`
   }
 `;
 
-const PathDisplay = styled.div`
+const PathDisplay = styled.span`
+  display: flex;
+  align-items: center;
   padding: 8px 12px;
   background-color: #1e1e1e;
   border: 1px solid #3e3e42;
   border-radius: 4px;
   font-size: 12px;
   color: #cccccc;
-  word-break: break-all;
+  flex: 1; /* 佔據剩餘空間 */
+  min-width: 0; /* 允許文字截斷 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-const OptionSection = styled.div<{ $disabled: boolean }>`
+const OptionSection = styled.div<{ $disabled?: boolean }>`
   background-color: ${(props: any) => (props.$disabled ? "#2d2d2d" : "#1e1e1e")};
   border: 1px solid ${(props: any) => (props.$disabled ? "#555" : "#3e3e42")};
   border-radius: 6px;
@@ -210,6 +224,11 @@ const DetectButton = styled.button`
   }
 `;
 
+const DetectHint = styled.span`
+  margin-left: 12px;
+  font-size: 12px;
+  color: #cccccc;
+`;
 
 interface ToolsStatus {
   ytdlp: boolean;
@@ -218,8 +237,6 @@ interface ToolsStatus {
 
 function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
   const [url, setUrl] = useState("");
-  const [audioOnly, setAudioOnly] = useState(false);
-  const [audioFormat, setAudioFormat] = useState("mp3");
   const [downloadPath, setDownloadPath] = useState("");
   const [status, setStatus] = useState("ready");
   const [logs, setLogs] = useState(["準備就緒，請輸入 URL 並選擇下載位置"]);
@@ -232,7 +249,8 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     enableAudio: false,
     videoFormat: "",
     audioFormat: "",
-    audioOutputFormat: "",
+    audioOnly: false,
+    audioOutputFormat: "mp3",
   });
 
   // 設定預設下載路徑
@@ -416,8 +434,6 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     setLogs(["準備就緒，請輸入 URL 並選擇下載位置"]);
     setUrl("");
     setDownloadPath("");
-    setAudioOnly(false);
-    setAudioFormat("mp3");
     setIsFormatDetected(false);
     setFormatOptions([]);
     setEnableCustomOptions(true);
@@ -426,11 +442,40 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
       enableAudio: false,
       videoFormat: "",
       audioFormat: "",
-      audioOutputFormat: "",
+      audioOnly: false,
+      audioOutputFormat: "mp3",
+    });
+  };
+
+  const switchEnableCustomOptions = (checked: boolean) => {
+    setEnableCustomOptions(checked);
+    if(checked) {
+      setOptions({
+        ...options,
+        audioOnly: false,
+      });
+    }
+  };
+
+  const switchAudioOnlyMode = (checked: boolean) => {
+    setOptions({
+      ...options,
+      audioOnly: checked,
+    });
+    if(checked) {
+      setEnableCustomOptions(false);
+    }
+  };
+
+  const handleAudioOutputFormatChange = (format: "mp3" | "wav") => {
+    setOptions({
+      ...options,
+      audioOutputFormat: format,
     });
   };
 
   const handleDownload = async () => {
+    console.log(JSON.stringify({options, enableCustomOptions}, null, 2));
     if (!url) {
       setStatus("error");
       const errorMsg = "請輸入有效的 URL";
@@ -446,7 +491,7 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     }
 
     // 如果是自訂選項模式且影片下載且未偵測格式，則要求先偵測
-    if (enableCustomOptions && !audioOnly && !isFormatDetected) {
+    if (enableCustomOptions && !options.audioOnly && !isFormatDetected) {
       setStatus("error");
       const errorMsg = "請先點擊「偵測串流格式」來獲取可用的格式選項";
       setLogs((prev) => [...prev, errorMsg]);
@@ -496,7 +541,6 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     }
   };
 
-
   const getDownloadStatus = () => status === "downloading"
   ? "downloading"
   : !url || !downloadPath
@@ -513,20 +557,17 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
       />
 
       <OptionSection $disabled={!enableCustomOptions}>
-        <OptionTitle>
-          自訂影片選項<span>:請先輸入網址以獲取可用的串流格式</span>
-        </OptionTitle>
         <CustomOptionsToggle>
           <CustomOptionsSwitch $enabled={enableCustomOptions}>
             <CustomOptionsInput
               type="checkbox"
               checked={enableCustomOptions}
-              onChange={(e) => setEnableCustomOptions(e.target.checked)}
+              onChange={(e) => switchEnableCustomOptions(e.target.checked)}
             />
             <CustomOptionsSlider $enabled={enableCustomOptions} />
           </CustomOptionsSwitch>
           <CustomOptionsLabel
-            onClick={() => setEnableCustomOptions(!enableCustomOptions)}
+            onClick={() => switchEnableCustomOptions(!enableCustomOptions)}
           >
             自訂影片選項
           </CustomOptionsLabel>
@@ -540,7 +581,7 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
             >
               {isDetectingFormats ? "偵測中..." : "🔍 偵測串流格式"}
             </DetectButton>
-
+            <DetectHint>請先輸入網址以獲取可用的串流格式</DetectHint>
             {isFormatDetected && (
               <FormatSelectionPanel
                 videoFormats={formatOptions.filter(
@@ -550,10 +591,7 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
                   (f) => f.type === "audio only"
                 )}
                 options={options}
-                onChange={(data) => {
-                  console.log(data);
-                  setOptions(data);
-                }}
+                onChange={setOptions}
               />
             )}
           </>
@@ -562,21 +600,20 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
       <OptionSection $disabled={enableCustomOptions}>
         <OptionTitle>音檔選項</OptionTitle>
         <AudioToggle>
-          <ToggleSwitch $enabled={audioOnly}>
+          <ToggleSwitch $enabled={options.audioOnly}>
             <ToggleInput
               type="checkbox"
-              checked={audioOnly}
-              onChange={(e) => setAudioOnly(e.target.checked)}
-              disabled={enableCustomOptions}
+              checked={options.audioOnly}
+              onChange={(e) => switchAudioOnlyMode(e.target.checked)}
             />
-            <ToggleSlider $enabled={audioOnly} />
+            <ToggleSlider $enabled={options.audioOnly} />
           </ToggleSwitch>
-          <ToggleLabel onClick={() => !enableCustomOptions && setAudioOnly(!audioOnly)}>
+          <ToggleLabel>
             只要音檔
           </ToggleLabel>
         </AudioToggle>
 
-        {audioOnly && (
+        {options.audioOnly && (
           <AudioFormatOptions>
             <FormatOption>
               <RadioInput
@@ -584,9 +621,9 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
                 id="mp3"
                 name="audioFormat"
                 value="mp3"
-                checked={audioFormat === "mp3"}
-                onChange={(e) => setAudioFormat(e.target.value)}
-                disabled={enableCustomOptions}
+                checked={options.audioOutputFormat === "mp3"}
+                onChange={(e) => handleAudioOutputFormatChange("mp3")}
+                disabled={!options.audioOnly}
               />
               <RadioLabel htmlFor="mp3">MP3</RadioLabel>
             </FormatOption>
@@ -596,9 +633,9 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
                 id="wav"
                 name="audioFormat"
                 value="wav"
-                checked={audioFormat === "wav"}
-                onChange={(e) => setAudioFormat(e.target.value)}
-                disabled={enableCustomOptions}
+                checked={options.audioOutputFormat === "wav"}
+                onChange={(e) => handleAudioOutputFormatChange("wav")}
+                disabled={!options.audioOnly}
               />
               <RadioLabel htmlFor="wav">WAV</RadioLabel>
             </FormatOption>
@@ -606,13 +643,15 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
         )}
       </OptionSection>
 
-      <DownloadPathSection>
+      <OptionSection>
         <SectionTitle>下載位置</SectionTitle>
-        <PathButton onClick={handleSelectPath}>
-          選擇下載位置
-        </PathButton>
-        {downloadPath && <PathDisplay>{downloadPath}</PathDisplay>}
-      </DownloadPathSection>
+        <PathRow>
+          <PathDisplay>{downloadPath}</PathDisplay>
+          <PathButton onClick={handleSelectPath}>
+            選擇下載位置
+          </PathButton>
+        </PathRow>
+      </OptionSection>
 
       <div style={{ display: 'flex', gap: '12px' }}>
         <DownloadButton

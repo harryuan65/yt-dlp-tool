@@ -1,133 +1,198 @@
-# yt-dlp Desktop App
+# yt-dlp Desktop App (WIP)
 
-一個簡單易用的 yt-dlp 桌面應用程式，讓沒有程式背景的使用者也能輕鬆下載 YouTube 和其他影片網站的內容。
+As a content creator, a UI would be handy for frequent use of yt-dlp. However, the UIs I found online are either Windows-only or not-so-good experience. Trying to make myself one.
 
-## 功能特色
+A user-friendly desktop application for yt-dlp and ffmpeg, designed for users without programming backgrounds. Features a modern dark theme interface similar to VSCode.
 
-- 🎥 支援 YouTube 和其他主流影片網站
-- 🎨 現代化的深色主題 UI（類似 VSCode）
-- 📱 簡潔直觀的使用者介面
-- ⚡ 即時下載進度顯示
-- 🔧 自動檢測必要工具安裝狀態
-- 📁 一鍵開啟下載資料夾
+## Features
 
-## 系統需求
+- **Video Download**: Download videos from YouTube and other supported platforms
+- **Audio Extraction**: Extract audio in MP3 or WAV format
+- **File Conversion**: Convert between different image, video, and audio formats
+- **Folder Management**: Easy access to download and output folders
+- **Real-time Progress**: Live download and conversion progress updates
+- **Auto Tool Detection**: Automatically checks for required tools (yt-dlp, ffmpeg)
+- **Cross-platform**: Works on macOS, Windows, and Linux
 
-- macOS 10.14 或更新版本
-- Node.js 16.0 或更新版本
-- yt-dlp
-- ffmpeg
+## System Requirements
 
-## 安裝步驟
+- **macOS**: 10.14 or later
+- **Windows**: 10 or later
+- **Linux**: Most modern distributions
+- **Node.js**: 16.0 or later
+- **yt-dlp**: Latest version
+- **ffmpeg**: Latest version
 
-### 1. 安裝必要工具
+## Installation
 
-首先需要安裝 yt-dlp 和 ffmpeg：
+### 1. Install Required Tools
+
+#### macOS (using Homebrew)
 
 ```bash
-# 安裝 Homebrew（如果尚未安裝）
+# Install Homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 安裝 yt-dlp
+# Install yt-dlp
 brew install yt-dlp
 
-# 安裝 ffmpeg
+# Install ffmpeg
 brew install ffmpeg
 ```
 
-### 2. 安裝應用程式依賴
+#### Windows (using Chocolatey)
+
+```powershell
+# Install Chocolatey (if not already installed)
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install yt-dlp
+choco install yt-dlp
+
+# Install ffmpeg
+choco install ffmpeg
+```
+
+#### Linux (Ubuntu/Debian)
 
 ```bash
-# 進入專案目錄
+# Install yt-dlp
+sudo apt update
+sudo apt install yt-dlp
+
+# Install ffmpeg
+sudo apt install ffmpeg
+```
+
+### 2. Install Application Dependencies
+
+```bash
+# Clone the repository
+git clone <repository-url>
 cd ytdlp-desktop-app
 
-# 安裝 Node.js 依賴
+# Install Node.js dependencies
 npm install
 ```
 
-### 3. 執行應用程式
+### 3. Run the Application
 
-#### 開發模式
+#### Development Mode
+
 ```bash
 npm run electron-dev
 ```
 
-#### 生產模式
+#### Production Mode
+
 ```bash
-# 建置應用程式
+# Build the application
 npm run build
 
-# 執行 Electron 應用程式
+# Run Electron app
 npm run electron
 ```
 
-#### 打包應用程式
+#### Package Application
+
 ```bash
 npm run electron-pack
 ```
 
-## 使用方式
+## Usage
 
-1. 啟動應用程式
-2. 如果尚未安裝 yt-dlp 或 ffmpeg，應用程式會顯示安裝指南
-3. 安裝完成後，輸入要下載的影片 URL
-4. 選擇下載格式和畫質
-5. 點擊「開始下載」
-6. 選擇下載位置
-7. 等待下載完成
+### Video Download
 
-## 專案結構
+1. Launch the application
+2. Go to the "Download" tab
+3. Paste the video URL
+4. Choose download options:
+   - **Custom Video Options**: Detect and select specific video/audio formats
+   - **Audio Only**: Extract audio in MP3 or WAV format
+5. Select download location
+6. Click "Download" to start
+
+### File Conversion
+
+1. Go to the "Convert" tab
+2. Drag and drop files or click to select
+3. Choose conversion type (Image/Video/Audio)
+4. Select output format
+5. Choose output directory
+6. Click "Convert" to start
+
+### Folder Management
+
+- Click "Open Folder" buttons to quickly access download or output directories
+- Default paths are automatically set to system Downloads folder
+
+## Project Structure
 
 ```
 ytdlp-desktop-app/
 ├── public/
-│   ├── electron.js          # Electron 主進程
-│   ├── preload.js           # 預載腳本
-│   └── index.html           # HTML 模板
+│   ├── electron.js          # Electron main process
+│   ├── preload.js           # Preload script
+│   └── index.html           # HTML template
 ├── src/
-│   ├── components/          # React 組件
-│   │   ├── Header.js
-│   │   ├── UrlInput.js
-│   │   ├── OptionsPanel.js
-│   │   ├── DownloadButton.js
-│   │   ├── StatusPanel.js
-│   │   └── InstallerPanel.js
-│   ├── styles/
-│   │   └── global.css       # 全域樣式
-│   ├── App.js               # 主應用程式組件
-│   └── index.js             # React 入口點
+│   ├── components/          # React components
+│   │   ├── Header.tsx
+│   │   ├── DownloadTab/
+│   │   │   └── DownloadTab.tsx
+│   │   ├── ConvertTab.tsx
+│   │   ├── FileDropZone.tsx
+│   │   ├── StatusPanel.tsx
+│   │   └── ...
+│   ├── types/
+│   │   └── global.d.ts      # TypeScript definitions
+│   ├── utils/
+│   │   └── command.js       # Command utilities
+│   ├── App.tsx              # Main application component
+│   └── index.tsx            # React entry point
 ├── package.json
 └── README.md
 ```
 
-## 技術棧
+## Technology Stack
 
-- **Electron**: 桌面應用程式框架
-- **React**: UI 框架
-- **Styled Components**: CSS-in-JS 樣式解決方案
-- **yt-dlp**: 影片下載工具
-- **ffmpeg**: 音視訊處理工具
+- **Electron**: Desktop application framework
+- **React**: UI framework with TypeScript
+- **Styled Components**: CSS-in-JS styling solution
+- **yt-dlp**: Video download tool
+- **ffmpeg**: Audio/video processing tool
 
-## 開發說明
+## Development
 
-### 主要檔案說明
+### Key Files
 
-- `public/electron.js`: Electron 主進程，負責視窗管理和系統互動
-- `public/preload.js`: 預載腳本，提供安全的 API 給渲染進程
-- `src/App.js`: 主應用程式組件，管理狀態和組件協調
-- `src/components/`: 各種 UI 組件
+- `public/electron.js`: Electron main process, handles window management and system interactions
+- `public/preload.js`: Preload script, provides secure APIs to renderer process
+- `src/App.tsx`: Main application component, manages state and component coordination
+- `src/components/`: Various UI components
+- `src/utils/command.js`: Command building utilities for yt-dlp and ffmpeg
 
-### 新增功能
+### Adding Features
 
-1. 在 `src/components/` 中建立新組件
-2. 在 `src/App.js` 中引入和使用組件
-3. 如需與系統互動，在 `public/electron.js` 中新增 IPC 處理器
-4. 在 `public/preload.js` 中暴露安全的 API
+1. Create new components in `src/components/`
+2. Import and use components in `src/App.tsx`
+3. For system interactions, add IPC handlers in `public/electron.js`
+4. Expose secure APIs in `public/preload.js`
+5. Update TypeScript definitions in `src/types/global.d.ts`
 
-## 授權
+## Known Issues
+
+- File conversion currently processes files individually (not batch processing)
+- Some complex video formats may require specific ffmpeg configurations
+- Large file downloads may take time depending on internet speed
+
+## License
 
 MIT License
 
-## 貢獻
+## Disclaimer
 
-歡迎提交 Issue 和 Pull Request！
+This project is currently not open for external contributions. The application is in active development and the codebase may undergo significant changes.
+
+## Support
+
+For issues and questions, please check the existing issues or create a new one with detailed information about your problem.

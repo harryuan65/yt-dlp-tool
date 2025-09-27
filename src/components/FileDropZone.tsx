@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
 
-const DropZone = styled.div`
+const DropZone = styled.div<{ $isDragOver?: boolean }>`
   border: 2px dashed ${(props) => (props.$isDragOver ? "#007acc" : "#5a5a5a")};
   border-radius: 8px;
   padding: 40px 20px;
@@ -24,13 +24,13 @@ const DropZoneContent = styled.div`
   gap: 12px;
 `;
 
-const DropIcon = styled.div`
+const DropIcon = styled.div<{ $isDragOver?: boolean }>`
   font-size: 48px;
   color: ${(props) => (props.$isDragOver ? "#007acc" : "#666")};
   transition: color 0.2s ease;
 `;
 
-const DropText = styled.div`
+const DropText = styled.div<{ $isDragOver?: boolean }>`
   font-size: 16px;
   font-weight: 500;
   color: ${(props) => (props.$isDragOver ? "#007acc" : "#cccccc")};
@@ -58,25 +58,33 @@ const SupportedFormats = styled.div`
   color: #666;
 `;
 
-function FileDropZone({ onFilesAdded }) {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef(null);
+interface FileWithPath extends File {
+  path: string;
+}
 
-  const handleDragOver = (e) => {
+interface FileDropZoneProps {
+  onFilesAdded: (files: FileWithPath[]) => void;
+}
+
+function FileDropZone({ onFilesAdded }: FileDropZoneProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
   };
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
 
-    const files = Array.from(e.dataTransfer.files);
+    const files = Array.from(e.dataTransfer.files) as FileWithPath[];
     onFilesAdded(files);
   };
 
@@ -84,8 +92,8 @@ function FileDropZone({ onFilesAdded }) {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as FileWithPath[];
     onFilesAdded(files);
     // 重置 input 值，允許選擇相同檔案
     e.target.value = "";

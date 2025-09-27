@@ -88,8 +88,17 @@ const EmptyState = styled.div`
   padding: 20px;
 `;
 
-function ConvertTab({ toolsStatus }) {
-  const [files, setFiles] = useState([]);
+interface ToolsStatus {
+  ytdlp: boolean;
+  ffmpeg: boolean;
+}
+
+interface FileWithPath extends File {
+  path: string;
+}
+
+function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
+  const [files, setFiles] = useState<FileWithPath[]>([]);
   const [conversionType, setConversionType] = useState("image");
   const [outputFormat, setOutputFormat] = useState("png");
   const [status, setStatus] = useState("ready");
@@ -102,7 +111,7 @@ function ConvertTab({ toolsStatus }) {
       return;
     }
 
-    const handleProgress = (event, data) => {
+    const handleProgress = (event: any, data: any) => {
       setProgress((prev) => prev + data);
       setLogs((prev) => [...prev, data.toString()]);
     };
@@ -114,11 +123,11 @@ function ConvertTab({ toolsStatus }) {
     };
   }, []);
 
-  const handleFilesAdded = (newFiles) => {
+  const handleFilesAdded = (newFiles: FileWithPath[]) => {
     setFiles((prev) => [...prev, ...newFiles]);
   };
 
-  const handleFileRemove = (index) => {
+  const handleFileRemove = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -139,7 +148,7 @@ function ConvertTab({ toolsStatus }) {
       return;
     }
 
-    if (!toolsStatus.ffmpeg.installed) {
+    if (!toolsStatus.ffmpeg) {
       setStatus("error");
       const errorMsg = "請先安裝 ffmpeg";
       setProgress(errorMsg);
@@ -172,7 +181,7 @@ function ConvertTab({ toolsStatus }) {
       const successMsg = `轉檔完成！檔案已儲存至: ${result.outputPath}`;
       setProgress(successMsg);
       setLogs((prev) => [...prev, successMsg]);
-    } catch (error) {
+    } catch (error: any) {
       setStatus("error");
       const errorMsg = `轉檔失敗: ${error.message}`;
       setProgress(errorMsg);
@@ -180,14 +189,14 @@ function ConvertTab({ toolsStatus }) {
     }
   };
 
-  const getFileIcon = (fileName) => {
-    const ext = fileName.split(".").pop().toLowerCase();
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
 
-    if (["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext)) {
+    if (["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext || "")) {
       return "🖼️";
-    } else if (["mp4", "avi", "mov", "mkv", "wmv", "flv"].includes(ext)) {
+    } else if (["mp4", "avi", "mov", "mkv", "wmv", "flv"].includes(ext || "")) {
       return "🎬";
-    } else if (["mp3", "wav", "flac", "aac", "ogg"].includes(ext)) {
+    } else if (["mp3", "wav", "flac", "aac", "ogg"].includes(ext || "")) {
       return "🎵";
     }
     return "📄";

@@ -16,7 +16,7 @@ const Title = styled.h3`
   color: #ffffff;
 `;
 
-const StatusContent = styled.div`
+const StatusContent = styled.div<{ status?: string }>`
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 12px;
   line-height: 1.4;
@@ -47,7 +47,12 @@ const EmptyState = styled.div`
   padding: 20px;
 `;
 
-function StatusPanel({ status, progress }) {
+interface StatusPanelProps {
+  status?: string;
+  progress?: string;
+}
+
+function StatusPanel({ status, progress }: StatusPanelProps) {
   const getStatusText = () => {
     if (!progress) {
       return "準備就緒，請輸入 URL 並點擊下載";

@@ -13,7 +13,7 @@ const pulse = keyframes`
   }
 `;
 
-const Button = styled.button`
+const Button = styled.button<{ disabled?: boolean }>`
   padding: 12px 24px;
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   border: none;
@@ -70,7 +70,12 @@ const LoadingSpinner = styled.div`
   }
 `;
 
-function ConvertButton({ onClick, disabled }) {
+interface ConvertButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function ConvertButton({ onClick, disabled }: ConvertButtonProps) {
   return (
     <Button onClick={onClick} disabled={disabled}>
       {disabled ? (

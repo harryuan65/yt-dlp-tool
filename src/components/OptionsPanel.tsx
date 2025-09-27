@@ -52,12 +52,22 @@ const Select = styled.select`
   }
 `;
 
-function OptionsPanel({ options, onChange }) {
-  const handleFormatChange = (e) => {
+interface DownloadOptions {
+  format: string;
+  quality: string;
+}
+
+interface OptionsPanelProps {
+  options: DownloadOptions;
+  onChange: (options: DownloadOptions) => void;
+}
+
+function OptionsPanel({ options, onChange }: OptionsPanelProps) {
+  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange({ ...options, format: e.target.value });
   };
 
-  const handleQualityChange = (e) => {
+  const handleQualityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange({ ...options, quality: e.target.value });
   };
 

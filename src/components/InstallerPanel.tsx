@@ -29,7 +29,7 @@ const ToolsList = styled.div`
   margin-bottom: 24px;
 `;
 
-const ToolItem = styled.div`
+const ToolItem = styled.div<{ $installed?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -51,7 +51,7 @@ const ToolName = styled.span`
   margin-bottom: 4px;
 `;
 
-const ToolStatus = styled.span`
+const ToolStatus = styled.span<{ $installed?: boolean }>`
   font-size: 12px;
   color: ${(props) => (props.$installed ? "#4CAF50" : "#f44336")};
 `;
@@ -107,9 +107,23 @@ const CodeBlock = styled.code`
   color: #d4d4d4;
 `;
 
-function InstallerPanel({ toolsStatus }) {
-  const openInstallGuide = (tool) => {
-    let url;
+interface ToolStatus {
+  installed: boolean;
+  version?: string;
+}
+
+interface ToolsStatus {
+  ytdlp: ToolStatus;
+  ffmpeg: ToolStatus;
+}
+
+interface InstallerPanelProps {
+  toolsStatus: ToolsStatus;
+}
+
+function InstallerPanel({ toolsStatus }: InstallerPanelProps) {
+  const openInstallGuide = (tool: string) => {
+    let url: string | undefined;
     if (tool === "ytdlp") {
       url = "https://github.com/yt-dlp/yt-dlp#installation";
     } else if (tool === "ffmpeg") {

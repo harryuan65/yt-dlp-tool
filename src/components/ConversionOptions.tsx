@@ -59,7 +59,7 @@ const FormatOptions = styled.div`
   margin-top: 8px;
 `;
 
-const FormatOption = styled.button`
+const FormatOption = styled.button<{ $selected?: boolean }>`
   padding: 6px 12px;
   background-color: ${(props) => (props.$selected ? "#007acc" : "#3c3c3c")};
   border: 1px solid ${(props) => (props.$selected ? "#007acc" : "#5a5a5a")};
@@ -74,7 +74,18 @@ const FormatOption = styled.button`
   }
 `;
 
-const conversionTypes = {
+interface ConversionType {
+  label: string;
+  formats: Array<{ value: string; label: string }>;
+}
+
+interface ConversionTypes {
+  image: ConversionType;
+  video: ConversionType;
+  audio: ConversionType;
+}
+
+const conversionTypes: ConversionTypes = {
   image: {
     label: "圖片轉檔",
     formats: [
@@ -100,19 +111,26 @@ const conversionTypes = {
   },
 };
 
+interface ConversionOptionsProps {
+  conversionType: string;
+  outputFormat: string;
+  onTypeChange: (type: string) => void;
+  onFormatChange: (format: string) => void;
+}
+
 function ConversionOptions({
   conversionType,
   outputFormat,
   onTypeChange,
   onFormatChange,
-}) {
-  const currentType = conversionTypes[conversionType];
+}: ConversionOptionsProps) {
+  const currentType = conversionTypes[conversionType as keyof ConversionTypes];
 
-  const handleTypeChange = (e) => {
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     onTypeChange(newType);
     // 自動選擇第一個可用的格式
-    const firstFormat = conversionTypes[newType].formats[0].value;
+    const firstFormat = conversionTypes[newType as keyof ConversionTypes].formats[0].value;
     onFormatChange(firstFormat);
   };
 

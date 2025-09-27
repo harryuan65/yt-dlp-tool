@@ -10,7 +10,7 @@ const TabContainer = styled.div`
   overflow: hidden;
 `;
 
-const Tab = styled.button`
+const Tab = styled.button<{ $active: boolean }>`
   flex: 1;
   padding: 12px 20px;
   background-color: ${(props) => (props.$active ? "#1e1e1e" : "transparent")};
@@ -38,7 +38,12 @@ const TabIcon = styled.span`
   font-size: 16px;
 `;
 
-function TabNavigation({ activeTab, onTabChange }) {
+interface TabNavigationProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   return (
     <TabContainer>
       <Tab

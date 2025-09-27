@@ -33,7 +33,14 @@ const Input = styled.input`
   }
 `;
 
-function UrlInput({ value, onChange, placeholder, required }) {
+interface UrlInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}
+
+function UrlInput({ value, onChange, placeholder, required }: UrlInputProps) {
   return (
     <InputContainer>
       <Label>影片 URL</Label>

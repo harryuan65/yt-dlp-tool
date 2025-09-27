@@ -1,32 +1,37 @@
-export function buildCommand({ options, downloadPath, url }) {
-  const ytdlpArgs = [
-    "--output",
-    `${downloadPath}%(title)s.%(ext)s`,
-    "--no-playlist",
-  ];
+function buildCommandArgs({ options, downloadPath, url }) {
+  let args = [`--output`, `${downloadPath}/%(title)s.%(ext)s`];
 
-  // 根據新的格式選擇邏輯添加參數
-  if (options.enableVideo && options.enableAudio) {
+  // 處理自訂格式選項
+  if (
+    options.enableVideo &&
+    options.enableAudio &&
+    options.videoFormat &&
+    options.audioFormat
+  ) {
     // 影片+音檔組合
-    ytdlpArgs.push("-f", `${options.videoFormat}+${options.audioFormat}`);
-  } else if (options.enableVideo) {
+    args.push(`-f`, `${options.videoFormat}+${options.audioFormat}`);
+  } else if (options.enableVideo && options.videoFormat) {
     // 只要影片
-    ytdlpArgs.push("-f", options.videoFormat);
-  } else if (options.enableAudio) {
+    args.push(`-f`, options.videoFormat);
+  } else if (options.enableAudio && options.audioFormat) {
     // 只要音檔
-    ytdlpArgs.push("-f", options.audioFormat);
-    ytdlpArgs.push("--extract-audio");
-    ytdlpArgs.push("--audio-format", options.audioOutputFormat);
-  } else {
-    // 預設行為
-    ytdlpArgs.push("-f", "best");
+    args.push(`-f`, options.audioFormat);
+    if (options.audioOutputFormat) {
+      args.push(`--extract-audio`, `--audio-format`, options.audioOutputFormat);
+    }
+  } else if (options.format && options.format !== "auto") {
+    // 傳統格式選項
+    args.push(`-f`, options.format);
   }
 
-  // URL 放在最後
-  ytdlpArgs.push(url);
+  if (!options.enableVideo && !options.enableAudio && options.audioFormat) {
+    args.push(`--extract-audio`, `--audio-format`, options.audioFormat);
+  }
 
-  // 發送完整的命令到渲染進程
-  const fullCommand = `yt-dlp ${ytdlpArgs.join(" ")}`;
+  args.push(url);
 
-  return fullCommand;
+  return args;
 }
+
+// 也支援 CommonJS require（給 Electron 主進程使用）
+module.exports = { buildCommandArgs };

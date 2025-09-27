@@ -3,7 +3,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
-const { buildCommand } = require("../src/utils/command");
+const { buildCommandArgs } = require("../src/utils/command");
 
 // 保持對視窗物件的全域引用
 let mainWindow;
@@ -61,7 +61,6 @@ app.on("activate", () => {
   }
 });
 
-// IPC 處理器 - 處理來自渲染進程的請求
 ipcMain.handle("check-ytdlp", async () => {
   try {
     const { exec } = require("child_process");
@@ -88,23 +87,6 @@ ipcMain.handle("check-ffmpeg", async () => {
   }
 });
 
-// 獲取預設下載位置
-function getDefaultDownloadPath() {
-  const homeDir = os.homedir();
-  const platform = os.platform();
-
-  if (platform === "darwin") {
-    // macOS
-    return path.join(homeDir, "Downloads");
-  } else if (platform === "win32") {
-    // Windows
-    return path.join(homeDir, "Downloads");
-  } else {
-    // Linux 或其他
-    return path.join(homeDir, "Downloads");
-  }
-}
-
 // 選擇下載位置
 ipcMain.handle("select-download-path", async () => {
   try {
@@ -127,8 +109,16 @@ ipcMain.handle("select-download-path", async () => {
 });
 
 // 獲取預設下載位置
+function getDefaultDownloadPath() {
+  const homeDir = os.homedir();
+  // const platform = os.platform();
+
+  return path.join(homeDir, "Downloads");
+}
+
+// 獲取預設下載位置
 ipcMain.handle("get-default-download-path", () => {
-  return { success: true, path: getDefaultDownloadPath() };
+  return getDefaultDownloadPath();
 });
 
 // 偵測串流格式
@@ -185,13 +175,20 @@ ipcMain.handle(
       }
 
       function startDownload() {
-        const fullCommand = buildCommand({ options, downloadPath, url });
+        const commandArgs = buildCommandArgs({
+          options,
+          downloadPath,
+          url,
+        });
+
+        // 顯示完整命令
+        const fullCommand = `yt-dlp ${commandArgs.join(" ")}`;
         mainWindow.webContents.send(
           "download-progress",
           `\n完整命令: ${fullCommand}\n`
         );
 
-        const ytdlp = spawn("yt-dlp", ytdlpArgs);
+        const ytdlp = spawn("yt-dlp", commandArgs);
         let output = "";
         let errorOutput = "";
 

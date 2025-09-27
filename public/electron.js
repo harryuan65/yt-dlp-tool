@@ -24,8 +24,7 @@ function createWindow() {
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js"),
     },
-    titleBarStyle: "hiddenInset", // 隱藏標題列但保留系統控制按鈕
-    trafficLightPosition: { x: 20, y: 20 }, // 將系統控制按鈕移到左上角
+    titleBarStyle: "default", // 使用原生標題欄
     backgroundColor: "#1e1e1e", // 深色背景
     show: false, // 先不顯示，等載入完成再顯示
   });
@@ -220,10 +219,6 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("open-folder", async (event, folderPath) => {
-  shell.showItemInFolder(folderPath);
-});
-
 // 轉檔功能
 ipcMain.handle(
   "convert-file",
@@ -277,23 +272,6 @@ ipcMain.handle(
     });
   }
 );
-
-// 視窗控制處理器
-ipcMain.handle("close-window", () => {
-  mainWindow.close();
-});
-
-ipcMain.handle("minimize-window", () => {
-  mainWindow.minimize();
-});
-
-ipcMain.handle("maximize-window", () => {
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow.maximize();
-  }
-});
 
 // 開啟資料夾處理器
 ipcMain.handle("open-folder", async (event, folderPath) => {

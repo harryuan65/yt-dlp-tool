@@ -45,9 +45,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeConversionProgressListener: (callback) => {
     ipcRenderer.removeListener("conversion-progress", callback);
   },
-
-  // 視窗控制
-  closeWindow: () => ipcRenderer.invoke("close-window"),
-  minimizeWindow: () => ipcRenderer.invoke("minimize-window"),
-  maximizeWindow: () => ipcRenderer.invoke("maximize-window"),
 });

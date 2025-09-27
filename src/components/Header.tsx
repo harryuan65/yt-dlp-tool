@@ -8,8 +8,6 @@ const HeaderContainer = styled.header`
   display: flex;
   align-items: center;
   justify-content: center;
-  -webkit-app-region: drag; /* 讓標題列可以拖拽視窗 */
-  padding-top: 40px; /* 為系統控制按鈕留出空間 */
 `;
 
 const Title = styled.h1`

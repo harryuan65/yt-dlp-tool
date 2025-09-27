@@ -13,9 +13,6 @@ interface ElectronAPI {
   onConversionProgress: (callback: (event: any, data: any) => void) => void;
   removeConversionProgressListener: (callback: (event: any, data: any) => void) => void;
   openFolder: (path: string) => Promise<void>;
-  closeWindow: () => Promise<void>;
-  minimizeWindow: () => Promise<void>;
-  maximizeWindow: () => Promise<void>;
 }
 
 declare global {

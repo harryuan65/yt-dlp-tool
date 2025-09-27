@@ -3,7 +3,10 @@ const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
-const { buildCommandArgs } = require("../src/utils/command");
+const {
+  buildYtDlpCommandArgs,
+  buildFfmpegCommandArgs,
+} = require("../src/utils/command");
 
 // 保持對視窗物件的全域引用
 let mainWindow;
@@ -175,7 +178,7 @@ ipcMain.handle(
       }
 
       function startDownload() {
-        const commandArgs = buildCommandArgs({
+        const commandArgs = buildYtDlpCommandArgs({
           options,
           downloadPath,
           url,
@@ -223,93 +226,54 @@ ipcMain.handle("open-folder", async (event, folderPath) => {
 
 // 轉檔功能
 ipcMain.handle(
-  "convert-files",
-  async (event, { files, conversionType, outputFormat }) => {
+  "convert-file",
+  async (event, { filePath, conversionType, outputFormat, outputDir }) => {
     return new Promise((resolve, reject) => {
-      // 讓使用者選擇輸出位置
-      dialog
-        .showOpenDialog(mainWindow, {
-          properties: ["openDirectory"],
-          title: "選擇輸出位置",
-        })
-        .then((result) => {
-          if (result.canceled) {
-            reject(new Error("使用者取消選擇"));
-            return;
+      startConversion();
+
+      function startConversion() {
+        // 使用批次轉換
+        const ffmpegArgs = buildFfmpegCommandArgs({
+          filePath,
+          conversionType,
+          outputFormat,
+          outputDir,
+        });
+
+        console.log("ffmpegArgs", ffmpegArgs);
+        // 發送完整的命令到渲染進程
+        const fullArgsString = ffmpegArgs.join(" ");
+        mainWindow.webContents.send(
+          "conversion-progress",
+          `\n完整命令: ffmpeg ${fullArgsString}\n`
+        );
+
+        const ffmpeg = spawn("ffmpeg", ffmpegArgs);
+        let output = "";
+        let errorOutput = "";
+
+        ffmpeg.stdout.on("data", (data) => {
+          output += data.toString();
+          mainWindow.webContents.send("conversion-progress", data.toString());
+        });
+
+        ffmpeg.stderr.on("data", (data) => {
+          errorOutput += data.toString();
+          mainWindow.webContents.send("conversion-progress", data.toString());
+        });
+
+        ffmpeg.on("close", (code) => {
+          if (code === 0) {
+            resolve({ success: true, outputDir });
+          } else {
+            reject(new Error(`轉檔失敗: ${errorOutput}`));
           }
+        });
 
-          const outputPath = result.filePaths[0];
-          const convertPromises = files.map((file) => {
-            return new Promise((resolveFile, rejectFile) => {
-              const inputPath = file.path;
-              const fileName = path.parse(file.name).name;
-              const outputFile = path.join(
-                outputPath,
-                `${fileName}.${outputFormat}`
-              );
-
-              let ffmpegArgs = ["-i", inputPath];
-
-              // 根據轉檔類型添加參數
-              if (conversionType === "image") {
-                ffmpegArgs.push("-q:v", "2"); // 高品質
-              } else if (conversionType === "video") {
-                ffmpegArgs.push("-c:v", "libx264", "-c:a", "aac"); // 使用 H.264 編碼
-              } else if (conversionType === "audio") {
-                ffmpegArgs.push("-c:a", "libmp3lame"); // MP3 編碼
-              }
-
-              ffmpegArgs.push(outputFile);
-
-              // 發送完整的命令到渲染進程
-              const fullCommand = `ffmpeg ${ffmpegArgs.join(" ")}`;
-              mainWindow.webContents.send(
-                "conversion-progress",
-                `\n完整命令: ${fullCommand}\n`
-              );
-
-              const ffmpeg = spawn("ffmpeg", ffmpegArgs);
-              let output = "";
-              let errorOutput = "";
-
-              ffmpeg.stdout.on("data", (data) => {
-                output += data.toString();
-                mainWindow.webContents.send(
-                  "conversion-progress",
-                  data.toString()
-                );
-              });
-
-              ffmpeg.stderr.on("data", (data) => {
-                errorOutput += data.toString();
-                // ffmpeg 的進度資訊通常在 stderr
-                mainWindow.webContents.send(
-                  "conversion-progress",
-                  data.toString()
-                );
-              });
-
-              ffmpeg.on("close", (code) => {
-                if (code === 0) {
-                  resolveFile({ success: true, outputFile, output });
-                } else {
-                  rejectFile(new Error(`轉檔失敗: ${errorOutput}`));
-                }
-              });
-
-              ffmpeg.on("error", (error) => {
-                rejectFile(error);
-              });
-            });
-          });
-
-          Promise.all(convertPromises)
-            .then((results) => {
-              resolve({ success: true, results, outputPath });
-            })
-            .catch(reject);
-        })
-        .catch(reject);
+        ffmpeg.on("error", (error) => {
+          reject(new Error(`轉檔錯誤: ${error.message}`));
+        });
+      }
     });
   }
 );

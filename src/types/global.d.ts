@@ -6,7 +6,7 @@ interface ElectronAPI {
   getDefaultDownloadPath: () => Promise<string>;
   selectDownloadPath: () => Promise<{ canceled: boolean; path: string }>;
   downloadVideo: (url: string, options: any, downloadPath: string) => Promise<{ success: boolean; downloadPath: string }>;
-  convertFiles: (params: { files: File[]; conversionType: string; outputFormat: string }) => Promise<{ success: boolean; outputPath: string }>;
+  convertFile: (params: { filePath: string; conversionType: string; outputFormat: string; outputDir: string }) => Promise<{ success: boolean; outputDir: string }>;
   detectStreamFormats: (url: string) => Promise<{ success: boolean; formats: string; error?: string }>;
   onDownloadProgress: (callback: (event: any, data: any) => void) => void;
   removeDownloadProgressListener: (callback: (event: any, data: any) => void) => void;

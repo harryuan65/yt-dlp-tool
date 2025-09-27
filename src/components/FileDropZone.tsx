@@ -88,13 +88,16 @@ function FileDropZone({ onFilesAdded }: FileDropZoneProps) {
     onFilesAdded(files);
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     fileInputRef.current?.click();
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
     const files = Array.from(e.target.files || []) as FileWithPath[];
-    onFilesAdded(files);
+    if (files.length > 0) {
+      onFilesAdded(files);
+    }
     // 重置 input 值，允許選擇相同檔案
     e.target.value = "";
   };
@@ -112,6 +115,7 @@ function FileDropZone({ onFilesAdded }: FileDropZoneProps) {
         type="file"
         multiple
         onChange={handleFileSelect}
+        onClick={(e) => e.stopPropagation()}
         accept="image/*,video/*,audio/*"
       />
       <DropZoneContent>

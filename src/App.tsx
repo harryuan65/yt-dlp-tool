@@ -14,11 +14,10 @@ const AppContainer = styled.div`
 `;
 
 const MainContent = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 `;
+
+const TabContent = styled.div`
+`
 
 interface ToolsStatus {
   ytdlp: boolean;
@@ -58,8 +57,10 @@ function App() {
       <Header />
       <MainContent>
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabContent>
         {activeTab === 'download' && <DownloadTab toolsStatus={toolsStatus} />}
         {activeTab === 'convert' && <ConvertTab toolsStatus={toolsStatus} />}
+        </TabContent>
       </MainContent>
     </AppContainer>
   );

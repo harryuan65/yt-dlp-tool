@@ -4,8 +4,9 @@ import FileDropZone from "./FileDropZone";
 import ConversionOptions from "./ConversionOptions";
 import ConvertButton from "./ConvertButton";
 import StatusPanel from "./StatusPanel";
+import { buildFfmpegCommandArgs } from "../utils/command";
 
-const TabContent = styled.div`
+export const TabContent = styled.div`
   background-color: #252526;
   border: 1px solid #3e3e42;
   border-top: none;
@@ -97,13 +98,44 @@ interface FileWithPath extends File {
   path: string;
 }
 
+const containsVideoFile = (files: FileWithPath[]) => {
+  return files.some((file) => file.name.endsWith(".mp4") || file.name.endsWith(".mov") || file.name.endsWith(".avi"));
+};
+
+const containsImageFile = (files: FileWithPath[]) => {
+  return files.some((file) => file.name.endsWith(".jpg") || file.name.endsWith(".jpeg") || file.name.endsWith(".png") || file.name.endsWith(".gif") || file.name.endsWith(".webp") || file.name.endsWith(".bmp"));
+};
+
+const containsAudioFile = (files: FileWithPath[]) => {
+  return files.some((file) => file.name.endsWith(".mp3") || file.name.endsWith(".wav"));
+};
+
 function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
   const [files, setFiles] = useState<FileWithPath[]>([]);
   const [conversionType, setConversionType] = useState("image");
   const [outputFormat, setOutputFormat] = useState("png");
+  const [outputDir, setOutputDir] = useState("");
   const [status, setStatus] = useState("ready");
   const [progress, setProgress] = useState("準備就緒，請選擇要轉檔的檔案");
   const [logs, setLogs] = useState(["準備就緒，請選擇要轉檔的檔案"]);
+
+  // 設定預設輸出路徑
+  useEffect(() => {
+    if (!window.electronAPI) {
+      return;
+    }
+
+    const setDefaultOutputPath = async () => {
+      try {
+        const defaultPath = await window.electronAPI.getDefaultDownloadPath();
+        setOutputDir(defaultPath);
+      } catch (error) {
+        console.error("無法獲取預設輸出路徑:", error);
+      }
+    };
+
+    setDefaultOutputPath();
+  }, []);
 
   // 監聽轉檔進度
   useEffect(() => {
@@ -124,6 +156,13 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
   }, []);
 
   const handleFilesAdded = (newFiles: FileWithPath[]) => {
+    if(containsAudioFile(newFiles)) {
+      setConversionType("audio");
+    } else if(containsVideoFile(newFiles)) {
+      setConversionType("video");
+    } else if(containsImageFile(newFiles)) {
+      setConversionType("image");
+    }
     setFiles((prev) => [...prev, ...newFiles]);
   };
 
@@ -162,25 +201,28 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
     setLogs((prev) => [...prev, startMsg]);
 
     try {
-      // 顯示即將執行的命令
-      const commandMsg = `執行命令: ffmpeg -i [輸入檔案] ${
-        conversionType === "image"
-          ? "-q:v 2"
-          : conversionType === "video"
-          ? "-c:v libx264 -c:a aac"
-          : "-c:a libmp3lame"
-      } [輸出檔案.${outputFormat}]`;
-      setLogs((prev) => [...prev, commandMsg]);
-
-      const result = await window.electronAPI.convertFiles({
-        files,
-        conversionType,
-        outputFormat,
-      });
-      setStatus("success");
-      const successMsg = `轉檔完成！檔案已儲存至: ${result.outputPath}`;
-      setProgress(successMsg);
+      await Promise.all(files.map(async (file, index) => {
+        const filePath = file.path;
+        const commandMsg = buildFfmpegCommandArgs({
+          filePath,
+          conversionType,
+          outputFormat,
+          outputDir: outputDir,
+        });
+        setLogs((prev) => [...prev, `轉檔中... ${index + 1}/${files.length} ${commandMsg.join(" ")}`]);
+        const result = await window.electronAPI.convertFile({
+          filePath,
+          conversionType,
+          outputFormat,
+          outputDir: outputDir,
+        });
+        const successMsg = `轉檔完成！檔案已儲存至: ${result.outputDir}`;
+        setProgress(successMsg);
+        setLogs((prev) => [...prev, successMsg]);
+      }))
+      const successMsg = `${files.length} 個檔案轉檔完成！`;
       setLogs((prev) => [...prev, successMsg]);
+      setStatus("success");
     } catch (error: any) {
       setStatus("error");
       const errorMsg = `轉檔失敗: ${error.message}`;
@@ -231,6 +273,50 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
         )}
       </div>
 
+      <div>
+        <SectionTitle>輸出路徑</SectionTitle>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{
+            flex: 1,
+            padding: '8px 12px',
+            backgroundColor: '#1e1e1e',
+            border: '1px solid #3e3e42',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#cccccc',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
+            {outputDir || '請選擇輸出路徑'}
+          </span>
+          <button
+            onClick={async () => {
+              if (!window.electronAPI) return;
+              try {
+                const result = await window.electronAPI.selectDownloadPath();
+                if (!result.canceled) {
+                  setOutputDir(result.path);
+                }
+              } catch (error) {
+                console.error('選擇輸出路徑失敗:', error);
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#007acc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            選擇路徑
+          </button>
+        </div>
+      </div>
+
       <ConversionOptions
         conversionType={conversionType}
         outputFormat={outputFormat}
@@ -243,7 +329,7 @@ function ConvertTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
         disabled={status === "converting" || files.length === 0}
       />
 
-      <StatusPanel status={status} progress={logs.join("")} />
+      <StatusPanel status={status} progress={logs.join("\n")} />
     </TabContent>
   );
 }

@@ -3,7 +3,7 @@ import styled from "styled-components";
 import UrlInput from "../UrlInput";
 import DownloadButton from "../DownloadButton";
 import StatusPanel from "../StatusPanel";
-import { buildCommandArgs } from "../../utils/command.js";
+import { buildYtDlpCommandArgs } from "../../utils/command.js";
 import type { DownloadOptions, FormatOption } from "./DownloadTab.interface";
 import { FormatSelectionPanel } from "./FormatSelectionPanel";
 
@@ -16,8 +16,6 @@ const TabContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
-  height: calc(100vh - 120px);
-  overflow-y: auto;
 `;
 
 const SectionTitle = styled.h3`
@@ -518,7 +516,7 @@ function DownloadTab({ toolsStatus }: { toolsStatus: ToolsStatus }) {
 
     try {
       // 顯示即將執行的命令
-      const args = buildCommandArgs({
+      const args = buildYtDlpCommandArgs({
         options,
         downloadPath,
         url,

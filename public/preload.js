@@ -34,7 +34,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // 轉檔功能
-  convertFiles: (options) => ipcRenderer.invoke("convert-files", options),
+  convertFile: (options) => ipcRenderer.invoke("convert-file", options),
 
   // 監聽轉檔進度
   onConversionProgress: (callback) => {

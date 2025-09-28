@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import styled from "styled-components";
 
 const DropZone = styled.div<{ $isDragOver?: boolean }>`
